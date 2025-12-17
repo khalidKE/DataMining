@@ -1,1 +1,8 @@
 creditcard.csv
+.gitignore
+__pycache__/
+*.py[cod]
+outputs/
+plots/
+reports/
+*.joblib
