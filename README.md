@@ -56,8 +56,4 @@ flowchart TD
 
 After training the models, the pipeline selects the best AUPRC performer and writes a SHAP summary plot (`plots/shap_summary_<model>.png`). Open that image to understand which features most influence the model’s fraud predictions (the same image is visible inside the Streamlit dashboard).
 
-## Next steps (suggested)
 
-1. Integrate imbalanced-data techniques (`imblearn`, threshold tuning, or cost-sensitive sampling) and compare their effect on recall.
-2. Enrich the dashboard with user-selected transactions or filtering so analysts can deep-dive into suspicious clusters.
-3. Use the saved SHAP summary to build per-transaction explanations (LIME/SHAP force plots) and surface them in the dashboard for transparency.
