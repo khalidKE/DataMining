@@ -9,8 +9,9 @@ This project analyzes the anonymized `creditcard.csv` dataset (284,807 transacti
 - `src/project_pipeline.py` – command-line pipeline that runs sampling, scaling, training, visualizations, SHAP summaries, and metadata exports.
 - `reports/eda_summary.md` – automatically generated markdown describing class balance, stats, and top-correlated features.
 - `outputs/` – serialized scalers/models (`.joblib`) plus `metrics.json` that stores AUPRC, precision, recall, and classification reports.
-- `plots/` – PNGs for class distribution, time/amount distributions, boxplots, correlation heatmaps, SHAP summaries, and PR curves.
+- `plots/` – PNGs for class distribution, hourly transaction breakdown, time/amount distributions, boxplots, correlation heatmaps, SHAP summaries, and PR curves.
 - `app.py` – Streamlit dashboard that loads the EDA summary, metrics, and visuals for quick inspection.
+- `operations.md` – sequence for refreshing the dataset, rerunning the pipeline, and updating the dashboard.
 
 ## Setup
 
@@ -26,7 +27,7 @@ python src/project_pipeline.py
 By default the script caps the dataset to 100,000 rows (`--max-samples`) to keep runtime reasonable while preserving the class imbalance structure; set the flag higher (or `0` to disable sampling) if you want to process everything. The command produces:
 
 - `reports/eda_summary.md` with the sample size, class counts, key statistics for `Time`/`Amount`, and the PCA features most correlated with fraud.
-- `plots/` with `class_distribution.png`, `time_density.png`, `amount_density.png`, `amount_boxplot.png`, `V17_V14_scatter.png`, `feature_correlations.png`, `shap_summary_<best_model>.png`, and `pr_curve_<model>.png` for every classifier.
+- `plots/` with `class_distribution.png`, `hourly_distribution.png`, `time_density.png`, `amount_density.png`, `amount_boxplot.png`, `V17_V14_scatter.png`, `feature_correlations.png`, `shap_summary_<best_model>.png`, and `pr_curve_<model>.png` for every classifier.
 - `outputs/metrics.json` (AUPRC, average precision, classification reports), plus saved scaler/model artifacts for each learner.
 
 ## Dashboard

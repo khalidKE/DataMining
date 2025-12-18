@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 
 import joblib
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -105,6 +107,19 @@ def create_visuals(df: pd.DataFrame, plots_dir: Path) -> None:
     plt.tight_layout()
     plt.savefig(plots_dir / "amount_boxplot.png")
     plt.close()
+
+    if "Time" in df.columns:
+        df_time = df.assign(hour=(df["Time"] // 3600) % 24)
+        hourly = df_time.groupby("hour")["Class"].value_counts().unstack(fill_value=0)
+        plt.figure(figsize=(8, 4))
+        hourly.plot(kind="bar", stacked=True, color=["#2ca02c", "#d62728"], width=0.8)
+        plt.title("Transactions per hour (stacked by class)")
+        plt.xlabel("Hour of day")
+        plt.ylabel("Transaction count")
+        plt.xticks(rotation=0)
+        plt.tight_layout()
+        plt.savefig(plots_dir / "hourly_distribution.png")
+        plt.close()
 
     scatter_x, scatter_y = "V17", "V14"
     if scatter_x in df.columns and scatter_y in df.columns:

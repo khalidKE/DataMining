@@ -36,6 +36,15 @@ def list_plots() -> list[Path]:
     return sorted(PLOTS_DIR.glob("*.png"))
 
 
+def pr_curve_path(model: str) -> Path:
+    return PLOTS_DIR / f"pr_curve_{model}.png"
+
+
+def shap_path() -> Path | None:
+    candidates = sorted(PLOTS_DIR.glob("shap_summary_*.png"))
+    return candidates[-1] if candidates else None
+
+
 st.set_page_config(page_title="Fraud Detection Dashboard", layout="wide")
 st.title("Credit Card Fraud Detection Explorer")
 
@@ -44,14 +53,33 @@ st.markdown("### Dataset Overview")
 st.markdown(eda_text)
 
 metrics_df = load_metrics()
+plot_paths = list_plots()
+
 if metrics_df.empty:
     st.warning("No metrics to display yet. Run `python src/project_pipeline.py` to generate metrics.json.")
 else:
+    st.sidebar.header("Model filters")
+    model_options = metrics_df["model"].tolist()
+    selected_models = st.sidebar.multiselect("Show models", model_options, default=model_options)
+    min_auprc = st.sidebar.slider("Min AUPRC threshold", 0.0, 1.0, 0.5, 0.01)
+    filtered = metrics_df[
+        (metrics_df["model"].isin(selected_models)) & (metrics_df["auprc"] >= min_auprc)
+    ]
     st.markdown("### Model comparison (AUPRC)")
-    st.dataframe(metrics_df.style.format({"auprc": "{:.3f}", "avg_precision": "{:.3f}"}))
+    st.dataframe(filtered.style.format({"auprc": "{:.3f}", "avg_precision": "{:.3f}"}))
+
+    st.markdown("#### Precision-Recall curves")
+    pr_images = [pr_curve_path(name) for name in filtered["model"] if pr_curve_path(name).exists()]
+    cols = st.columns(max(1, len(pr_images)))
+    for col, path in zip(cols, pr_images):
+        col.image(str(path), caption=path.stem, use_column_width=True)
+
+    shap_file = shap_path()
+    if shap_file is not None:
+        st.markdown("#### SHAP summary (best model)")
+        st.image(str(shap_file), caption=shap_file.stem, use_column_width=True)
 
 st.markdown("### Visualizations")
-plot_paths = list_plots()
 if plot_paths:
     for path in plot_paths:
         st.image(str(path), caption=path.stem.replace("_", " ").title(), use_column_width=True)
