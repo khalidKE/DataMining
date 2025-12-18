@@ -1,19 +1,20 @@
 # Credit Card Fraud Detection
 
-This project analyzes the anonymized `creditcard.csv` dataset (284,807 transactions with 492 frauds) to establish a reproducible pipeline that covers EDA, preprocessing, and model evaluation with focused metrics such as the Area Under the Precision-Recall Curve (AUPRC).
+This project analyzes the anonymized `creditcard.csv` dataset (284,807 transactions with 492 frauds) to build a reproducible pipeline covering EDA, preprocessing, several classifiers (Logistic Regression, Random Forest, Gradient Boosting, LightGBM, and an MLP), and evaluation that highlights the Area Under the Precision-Recall Curve (AUPRC) instead of accuracy.
 
 ## Repository layout
 
-- `creditcard.csv` – raw dataset downloaded from the ULB/Worldline research effort.
-- `requirements.txt` – dependencies needed to run the analysis end to end.
-- `src/project_pipeline.py` – single entry point that runs EDA, preprocessing, training, and evaluation.
-- `reports/eda_summary.md` – generated summary computed from the most recent pipeline execution.
-- `outputs/` – trained model artifacts (`*.joblib`), scaler, and `metrics.json`.
-- `plots/` – saved PNGs for class distribution, transaction amount density, and per-model precision-recall curves.
+- `creditcard.csv` – raw dataset from the ULB/Worldline research collaboration.
+- `requirements.txt` – pinned libraries used across the pipeline, dashboard, and explainability scripts.
+- `src/project_pipeline.py` – command-line pipeline that runs sampling, scaling, training, visualizations, SHAP summaries, and metadata exports.
+- `reports/eda_summary.md` – automatically generated markdown describing class balance, stats, and top-correlated features.
+- `outputs/` – serialized scalers/models (`.joblib`) plus `metrics.json` that stores AUPRC, precision, recall, and classification reports.
+- `plots/` – PNGs for class distribution, time/amount distributions, boxplots, correlation heatmaps, SHAP summaries, and PR curves.
+- `app.py` – Streamlit dashboard that loads the EDA summary, metrics, and visuals for quick inspection.
 
 ## Setup
 
-1. Create and activate a Python 3.12 environment (or equivalent).
+1. Create and activate a Python 3.12 (or newer) environment.
 2. `pip install -r requirements.txt`
 
 ## Running the pipeline
@@ -22,16 +23,28 @@ This project analyzes the anonymized `creditcard.csv` dataset (284,807 transacti
 python src/project_pipeline.py
 ```
 
-By default the script caps the row count at 100,000 (`--max-samples`) to keep the runtime manageable while still preserving the imbalance structure; set this flag higher (or to `0` for no cap) if you have more time. After execution you will find:
+By default the script caps the dataset to 100,000 rows (`--max-samples`) to keep runtime reasonable while preserving the class imbalance structure; set the flag higher (or `0` to disable sampling) if you want to process everything. The command produces:
 
-- `reports/eda_summary.md` with class balance, select statistics, and the most correlated features.
-- `plots/` with `class_distribution.png`, `time_density.png`, `amount_density.png`, `amount_boxplot.png`, `V17_V14_scatter.png`, `feature_correlations.png`, plus the PR curves for each model.
-- `outputs/metrics.json` (AUPRC, average precision, classification report) plus the saved scaler and models.
+- `reports/eda_summary.md` with the sample size, class counts, key statistics for `Time`/`Amount`, and the PCA features most correlated with fraud.
+- `plots/` with `class_distribution.png`, `time_density.png`, `amount_density.png`, `amount_boxplot.png`, `V17_V14_scatter.png`, `feature_correlations.png`, `shap_summary_<best_model>.png`, and `pr_curve_<model>.png` for every classifier.
+- `outputs/metrics.json` (AUPRC, average precision, classification reports), plus saved scaler/model artifacts for each learner.
 
-Since the dataset is heavily imbalanced, all classifiers are evaluated using precision-recall curves rather than accuracy.
+## Dashboard
+
+To explore the metrics and visuals interactively, launch the Streamlit application:
+
+```bash
+streamlit run app.py
+```
+
+It reads `reports/eda_summary.md`, `outputs/metrics.json`, and every PNG under `plots/` so you can browse the dataset overview, model comparison table, and generated charts in one place.
+
+## Explainability
+
+After training the models, the pipeline selects the best AUPRC performer and writes a SHAP summary plot (`plots/shap_summary_<model>.png`). Open that image to understand which features most influence the model’s fraud predictions (the same image is visible inside the Streamlit dashboard).
 
 ## Next steps (suggested)
 
-1. Integrate sampling or threshold tuning from `imblearn` to see how synthetic minority oversampling affects recall.
-2. Wrap the pipeline in a lightweight UI/notebook to explore high-risk clusters interactively.
-3. Add monitoring artifacts such as SHAP explanations or a dashboard that tracks precision at fixed recall.
+1. Integrate imbalanced-data techniques (`imblearn`, threshold tuning, or cost-sensitive sampling) and compare their effect on recall.
+2. Enrich the dashboard with user-selected transactions or filtering so analysts can deep-dive into suspicious clusters.
+3. Use the saved SHAP summary to build per-transaction explanations (LIME/SHAP force plots) and surface them in the dashboard for transparency.

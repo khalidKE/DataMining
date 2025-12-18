@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import shap
+from lightgbm import LGBMClassifier
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
@@ -20,6 +22,7 @@ from sklearn.metrics import (
     precision_recall_curve,
 )
 from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 
 
@@ -162,6 +165,21 @@ def evaluate_model(
     }
 
 
+def generate_shap_summary(model, X: pd.DataFrame, plots_dir: Path, label: str) -> None:
+    try:
+        sample = X.sample(n=min(800, len(X)), random_state=RANDOM_STATE)
+        explainer = shap.Explainer(model, sample)
+        shap_values = explainer(sample)
+        plt.figure(figsize=(10, 6))
+        shap.summary_plot(shap_values, sample, show=False)
+        plt.title(f"SHAP summary ({label})")
+        plt.tight_layout()
+        plt.savefig(plots_dir / f"shap_summary_{label}.png")
+        plt.close()
+    except Exception as exc:
+        print(f"Unable to generate SHAP summary for {label}: {exc}")
+
+
 def build_models() -> dict[str, object]:
     return {
         "logistic_regression": LogisticRegression(
@@ -176,6 +194,15 @@ def build_models() -> dict[str, object]:
         ),
         "gradient_boosting": GradientBoostingClassifier(
             random_state=RANDOM_STATE, n_estimators=80, max_depth=4, learning_rate=0.1
+        ),
+        "lightgbm": LGBMClassifier(
+            random_state=RANDOM_STATE, n_estimators=120, learning_rate=0.07, class_weight="balanced"
+        ),
+        "mlp": MLPClassifier(
+            hidden_layer_sizes=(64, 32),
+            max_iter=400,
+            random_state=RANDOM_STATE,
+            early_stopping=True,
         ),
     }
 
@@ -210,13 +237,23 @@ def main() -> None:
 
     models = build_models()
     metrics = {}
+    best_score = -1.0
+    best_label = None
+    best_model = None
     for name, model in models.items():
         model.fit(X_train, y_train)
         joblib.dump(model, args.outputs / f"{name}.joblib")
         metrics[name] = evaluate_model(model, X_test, y_test, args.plots, name)
+        if metrics[name]["auprc"] > best_score:
+            best_score = metrics[name]["auprc"]
+            best_model = model
+            best_label = name
 
     metrics_path = args.outputs / "metrics.json"
     metrics_path.write_text(json.dumps(metrics, indent=2))
+
+    if best_model is not None and best_label:
+        generate_shap_summary(best_model, X_train, args.plots, best_label)
 
     print(f"EDA summary saved to {eda_path}")
     print(f"Plots saved to {args.plots} (class distribution, amount density, PR curves).")
