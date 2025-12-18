@@ -8,6 +8,7 @@ from pathlib import Path
 
 import joblib
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
@@ -82,10 +83,44 @@ def create_visuals(df: pd.DataFrame, plots_dir: Path) -> None:
     plt.close()
 
     plt.figure(figsize=(8, 4))
+    sns.histplot(df, x="Time", bins=50, hue="Class", stat="density", element="step")
+    plt.title("Transaction time density by class")
+    plt.tight_layout()
+    plt.savefig(plots_dir / "time_density.png")
+    plt.close()
+
+    plt.figure(figsize=(8, 4))
     sns.histplot(df, x="Amount", hue="Class", bins=80, log_scale=(False, True), element="step", stat="density")
     plt.title("Transaction amount distribution (log density)")
     plt.tight_layout()
     plt.savefig(plots_dir / "amount_density.png")
+    plt.close()
+
+    plt.figure(figsize=(8, 4))
+    sns.boxplot(x="Class", y="Amount", data=df)
+    plt.title("Amount boxplot split by class")
+    plt.tight_layout()
+    plt.savefig(plots_dir / "amount_boxplot.png")
+    plt.close()
+
+    scatter_x, scatter_y = "V17", "V14"
+    if scatter_x in df.columns and scatter_y in df.columns:
+        plt.figure(figsize=(6, 5))
+        sns.scatterplot(x=scatter_x, y=scatter_y, hue="Class", data=df, alpha=0.6, s=16)
+        plt.title(f"{scatter_x} vs {scatter_y} by class")
+        plt.tight_layout()
+        plt.savefig(plots_dir / f"{scatter_x}_{scatter_y}_scatter.png")
+        plt.close()
+
+    corr_columns = df.corr().abs()["Class"].sort_values(ascending=False).head(10).index.tolist()
+    corr = df[corr_columns].corr()
+    mask = pd.DataFrame(0, index=corr.index, columns=corr.columns)
+    mask.values[np.triu_indices_from(mask)] = True
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(corr, annot=True, fmt=".2f", cmap="vlag", mask=mask)
+    plt.title("Top feature correlations")
+    plt.tight_layout()
+    plt.savefig(plots_dir / "feature_correlations.png")
     plt.close()
 
 

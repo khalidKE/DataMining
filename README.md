@@ -25,7 +25,7 @@ python src/project_pipeline.py
 By default the script caps the row count at 100,000 (`--max-samples`) to keep the runtime manageable while still preserving the imbalance structure; set this flag higher (or to `0` for no cap) if you have more time. After execution you will find:
 
 - `reports/eda_summary.md` with class balance, select statistics, and the most correlated features.
-- `plots/` with `class_distribution.png`, `amount_density.png`, and `pr_curve_<model>.png`.
+- `plots/` with `class_distribution.png`, `time_density.png`, `amount_density.png`, `amount_boxplot.png`, `V17_V14_scatter.png`, `feature_correlations.png`, plus the PR curves for each model.
 - `outputs/metrics.json` (AUPRC, average precision, classification report) plus the saved scaler and models.
 
 Since the dataset is heavily imbalanced, all classifiers are evaluated using precision-recall curves rather than accuracy.
