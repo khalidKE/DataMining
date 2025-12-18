@@ -39,6 +39,18 @@ streamlit run app.py
 
 It reads `reports/eda_summary.md`, `outputs/metrics.json`, and every PNG under `plots/` so you can browse the dataset overview, model comparison table, and generated charts in one place.
 
+## Pipeline overview
+
+```mermaid
+flowchart TD
+    A[Load creditcard.csv] --> B[Sample, describe, & scale features]
+    B --> C[Train models: logistic, RF, GB, LightGBM, & MLP]
+    C --> D[Save scalers/models + metrics.json]
+    C --> E[Generate plots (distributions, PR curves, SHAP)]
+    D --> F[Streamlit dashboard reads metrics + EDA summary]
+    E --> F
+```
+
 ## Explainability
 
 After training the models, the pipeline selects the best AUPRC performer and writes a SHAP summary plot (`plots/shap_summary_<model>.png`). Open that image to understand which features most influence the model’s fraud predictions (the same image is visible inside the Streamlit dashboard).
