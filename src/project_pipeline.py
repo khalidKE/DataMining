@@ -1,5 +1,3 @@
-"""End-to-end pipeline for the credit card fraud detection project."""
-
 from __future__ import annotations
 
 import argparse
@@ -150,6 +148,15 @@ def preprocess(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series, StandardScale
     return scaled_df, target, scaler
 
 
+def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, int]]:
+    before = len(df)
+    df_clean = df.drop_duplicates().dropna()
+    if "Amount" in df_clean.columns:
+        df_clean = df_clean[df_clean["Amount"] >= 0]
+    after = len(df_clean)
+    return df_clean, {"before": before, "after": after}
+
+
 def evaluate_model(
     model,
     X_test: pd.DataFrame,
@@ -234,6 +241,8 @@ def main() -> None:
     mkdirs(args.outputs, args.plots, args.reports)
 
     df = load_dataset(args.data)
+    df, clean_stats = clean_data(df)
+    print(f"Cleaned data: {clean_stats['before']} rows -> {clean_stats['after']} rows before modeling.")
     if args.max_samples and len(df) > args.max_samples:
         df = df.sample(n=args.max_samples, random_state=RANDOM_STATE)
         print(f"Sampling {len(df)} records (max requested {args.max_samples}).")

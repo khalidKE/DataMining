@@ -1,4 +1,3 @@
-"""Streamlit dashboard for the credit card fraud detection project."""
 
 from pathlib import Path
 
