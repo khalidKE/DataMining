@@ -45,7 +45,7 @@ It reads `reports/eda_summary.md`, `outputs/metrics.json`, and every PNG under `
 ```mermaid
 flowchart TD
     A["Load creditcard.csv"] --> B["Sample, describe, and scale features"]
-    B --> C["Train models: logistic, RF, GB, LightGBM, and MLP"]
+    B --> C["Train models: logistic regression, random forest, gradient boosting, LightGBM, and MLP"]
     C --> D["Save scalers/models plus metrics.json"]
     C --> E["Generate plots (distributions, PR curves, SHAP)"]
     D --> F["Streamlit dashboard reads metrics and EDA summary"]
