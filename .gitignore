@@ -6,3 +6,7 @@ outputs/
 plots/
 reports/
 *.joblib
+outputs
+reports
+plots
+.gitignore
