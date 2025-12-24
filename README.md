@@ -38,7 +38,7 @@ To explore the metrics and visuals interactively, launch the Streamlit applicati
 streamlit run app.py
 ```
 
-It reads `reports/eda_summary.md`, `outputs/metrics.json`, and every PNG under `plots/` so you can browse the dataset overview, model comparison table, and generated charts in one place.
+It reads `reports/eda_summary.md`, `outputs/metrics.json`, and every PNG under `plots/` so you can browse the dataset overview, model comparison table, and generated charts in one place. The dashboard now surfaces dataset summary cards, class-balance and correlation highlights, and a small snapshot of the raw transactions before diving into the model comparisons, plus a quick best-model overview to call out the top AUPRC performer.
 
 ## Pipeline overview
 
