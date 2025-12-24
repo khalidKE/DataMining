@@ -14,41 +14,58 @@ GRID_IMAGE_WIDTH = 320
 LANG_CHOICES = {"English": "en", "العربية": "ar"}
 UI_TEXT = {
     "language_label": {"en": "Language", "ar": "اللغة"},
-    "dataset_overview": {"en": "### Dataset Overview", "ar": "### نظرة عامة على البيانات"},
+    "dataset_overview": {"en": "### Dataset Overview", "ar": "### نظرة عامة على مجموعة البيانات"},
     "model_filters": {"en": "Model filters", "ar": "مرشحات النموذج"},
     "show_models": {"en": "Show models", "ar": "عرض النماذج"},
-    "min_auprc": {"en": "Min AUPRC threshold", "ar": "الحد الأدنى لـ AUPRC"},
+    "min_auprc": {"en": "Min AUPRC threshold", "ar": "الحد الأدنى لـAUPRC"},
     "model_comparison": {"en": "### Model comparison (AUPRC)", "ar": "### مقارنة النماذج (AUPRC)"},
-    "pr_curves": {"en": "#### Precision-Recall curves", "ar": "#### منحنيات الدقة/الاستدعاء"},
+    "pr_curves": {"en": "#### Precision-Recall curves", "ar": "#### منحنيات الدقة والاسترجاع"},
     "shap_summary": {"en": "#### SHAP summary (best model)", "ar": "#### ملخص SHAP (أفضل نموذج)"},
     "no_metrics": {
         "en": "No metrics to display yet. Run `python src/project_pipeline.py` to generate metrics.json.",
-        "ar": "لا توجد مقاييس للعرض بعد. شغّل `python src/project_pipeline.py` لإنشاء metrics.json."
+        "ar": "لا توجد مقاييس للعرض بعد، شغّل `python src/project_pipeline.py` لإنشاء metrics.json."
     },
-    "visualizations": {"en": "### Visualizations", "ar": "### التصويرات"},
+    "visualizations": {"en": "### Visualizations", "ar": "### التصورات"},
     "dataset_warning": {
         "en": "Select a language to toggle the UI between English and Arabic.",
-        "ar": "اختر اللغة لتبديل واجهة المستخدم بين الإنجليزية والعربية."
+        "ar": "اختر لغة لتبديل واجهة المستخدم بين الإنجليزية والعربية."
     },
-    "dataset_summary": {"en": "### Dataset at a glance"},
-    "dataset_transactions": {"en": "Transactions"},
-    "dataset_frauds": {"en": "Fraud cases"},
-    "dataset_features": {"en": "Dataset features"},
-    "dataset_avg_amount": {"en": "Avg amount ($)"},
-    "dataset_insights": {"en": "#### Dataset insights"},
-    "class_balance": {"en": "Class count"},
-    "top_correlations": {"en": "Top features correlated with fraud"},
-    "dataset_preview": {"en": "Dataset preview"},
+    "dataset_summary": {"en": "### Dataset at a glance", "ar": "### نظرة سريعة على البيانات"},
+    "dataset_transactions": {"en": "Transactions", "ar": "المعاملات"},
+    "dataset_frauds": {"en": "Fraud cases", "ar": "حالات الاحتيال"},
+    "dataset_features": {"en": "Dataset features", "ar": "ميزات البيانات"},
+    "dataset_avg_amount": {"en": "Avg amount ($)", "ar": "المبلغ المتوسط ($)"},
+    "dataset_insights": {"en": "#### Dataset insights", "ar": "#### رؤى البيانات"},
+    "class_balance": {"en": "Class count", "ar": "توزيع الفئات"},
+    "top_correlations": {
+        "en": "Top features correlated with fraud",
+        "ar": "أهم الميزات المرتبطة بالاحتيال"
+    },
+    "dataset_preview": {"en": "Dataset preview", "ar": "معاينة البيانات"},
     "dataset_missing": {
-        "en": "Add the full `creditcard.csv` dataset to unlock the richer dataset snapshot and insights."
+        "en": "Add the full `creditcard.csv` dataset to unlock the richer dataset snapshot and insights.",
+        "ar": "أضف الملف `creditcard.csv` الكامل للحصول على معاينة أوسع ورؤى إضافية."
     },
-    "best_model_highlight": {"en": "### Best model overview"},
-    "best_model_label": {"en": "Top performer"},
-    "best_model_auprc": {"en": "AUPRC"},
-    "best_model_precision": {"en": "Precision (positive)"},
-    "best_model_recall": {"en": "Recall (positive)"},
+    "best_model_highlight": {"en": "### Best model overview", "ar": "### لمحة عن أفضل نموذج"},
+    "best_model_label": {"en": "Top performer", "ar": "الأفضل"},
+    "best_model_auprc": {"en": "AUPRC", "ar": "AUPRC"},
+    "best_model_precision": {"en": "Precision (positive)", "ar": "الدقة (الإيجابية)"},
+    "best_model_recall": {"en": "Recall (positive)", "ar": "الاسترجاع (الإيجابية)"},
     "best_model_caption": {
-        "en": "This is the model with the highest average precision recorded in `metrics.json`."
+        "en": "This is the model with the highest average precision recorded in `metrics.json`.",
+        "ar": "هذا النموذج سجّل أعلى متوسط دقة محفوظ في `metrics.json`."
+    },
+    "eda_missing": {
+        "en": "EDA summary not found yet. Run the pipeline to generate it.",
+        "ar": "ملخص التحليل الاستكشافي غير موجود بعد، شغّل الأنابيب لإنشائه."
+    },
+    "eda_read_error": {
+        "en": "Unable to read the current EDA summary.",
+        "ar": "تعذر قراءة ملخص التحليل الاستكشافي الحالي."
+    },
+    "metrics_load_error": {
+        "en": "Unable to load metrics.json. Ensure it is present and valid.",
+        "ar": "تعذر تحميل metrics.json، تأكد من وجوده وصحته."
     },
 }
 
@@ -61,10 +78,14 @@ DATA_PREVIEW_ROWS = 120
 DATA_RANDOM_STATE = 42
 
 
-def load_metrics() -> pd.DataFrame:
+def load_metrics(lang_code: str) -> pd.DataFrame:
     if not METRICS_PATH.exists():
         return pd.DataFrame()
-    raw = json.loads(METRICS_PATH.read_text())
+    try:
+        raw = json.loads(METRICS_PATH.read_text())
+    except (json.JSONDecodeError, OSError):
+        st.warning(t("metrics_load_error", lang_code))
+        return pd.DataFrame()
     records = []
     for model, info in raw.items():
         report = info.get("classification_report", {}).get("1", {})
@@ -79,6 +100,15 @@ def load_metrics() -> pd.DataFrame:
             }
         )
     return pd.DataFrame(records).sort_values("auprc", ascending=False)
+
+
+def load_eda_summary(lang_code: str) -> str:
+    if not EDA_PATH.exists():
+        return t("eda_missing", lang_code)
+    try:
+        return EDA_PATH.read_text()
+    except OSError:
+        return t("eda_read_error", lang_code)
 
 
 def list_plots() -> list[Path]:
@@ -163,9 +193,9 @@ lang_code = LANG_CHOICES[lang_choice]
 
 st.sidebar.caption(t("dataset_warning", lang_code))
 
-metrics_df = load_metrics()
+metrics_df = load_metrics(lang_code)
 plot_paths = list_plots()
-eda_text = EDA_PATH.read_text() if EDA_PATH.exists() else t("no_metrics", lang_code)
+eda_text = load_eda_summary(lang_code)
 
 dataset_df = None
 dataset_stats = {}

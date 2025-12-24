@@ -19,7 +19,7 @@ from sklearn.metrics import (
     classification_report,
     precision_recall_curve,
 )
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 
@@ -138,12 +138,31 @@ def create_visuals(df: pd.DataFrame, plots_dir: Path) -> None:
     plt.close()
 
 
-def preprocess(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series, StandardScaler]:
-    target = df.pop("Class")
+def stratified_sample(df: pd.DataFrame, max_samples: int) -> pd.DataFrame:
+    if len(df) <= max_samples:
+        return df
+    splitter = StratifiedShuffleSplit(
+        n_splits=1, train_size=max_samples, random_state=RANDOM_STATE
+    )
+    train_idx, _ = next(splitter.split(df, df["Class"]))
+    return df.iloc[train_idx].reset_index(drop=True)
+
+
+def scale_features(
+    X_train: pd.DataFrame, X_test: pd.DataFrame
+) -> tuple[pd.DataFrame, pd.DataFrame, StandardScaler]:
     scaler = StandardScaler()
-    scaled_features = scaler.fit_transform(df)
-    scaled_df = pd.DataFrame(scaled_features, columns=df.columns)
-    return scaled_df, target, scaler
+    X_train_scaled = pd.DataFrame(
+        scaler.fit_transform(X_train),
+        columns=X_train.columns,
+        index=X_train.index,
+    )
+    X_test_scaled = pd.DataFrame(
+        scaler.transform(X_test),
+        columns=X_test.columns,
+        index=X_test.index,
+    )
+    return X_train_scaled, X_test_scaled, scaler
 
 
 def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, int]]:
@@ -242,20 +261,25 @@ def main() -> None:
     df, clean_stats = clean_data(df)
     print(f"Cleaned data: {clean_stats['before']} rows -> {clean_stats['after']} rows before modeling.")
     if args.max_samples and len(df) > args.max_samples:
-        df = df.sample(n=args.max_samples, random_state=RANDOM_STATE)
-        print(f"Sampling {len(df)} records (max requested {args.max_samples}).")
+        df = stratified_sample(df, args.max_samples)
+        print(f"Stratified sampling {len(df)} records (max requested {args.max_samples}).")
 
     eda_path = args.reports / "eda_summary.md"
     eda_path.write_text(summary_text(df))
 
     create_visuals(df, args.plots)
 
-    X, y, scaler = preprocess(df)
-    joblib.dump(scaler, args.outputs / "scaler.joblib")
-
+    X = df.drop(columns=["Class"])
+    y = df["Class"]
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.25, random_state=RANDOM_STATE, stratify=y
+        X,
+        y,
+        test_size=0.25,
+        random_state=RANDOM_STATE,
+        stratify=y,
     )
+    X_train_scaled, X_test_scaled, scaler = scale_features(X_train, X_test)
+    joblib.dump(scaler, args.outputs / "scaler.joblib")
 
     models = build_models()
     metrics = {}
@@ -263,9 +287,9 @@ def main() -> None:
     best_label = None
     best_model = None
     for name, model in models.items():
-        model.fit(X_train, y_train)
+        model.fit(X_train_scaled, y_train)
         joblib.dump(model, args.outputs / f"{name}.joblib")
-        metrics[name] = evaluate_model(model, X_test, y_test, args.plots, name)
+        metrics[name] = evaluate_model(model, X_test_scaled, y_test, args.plots, name)
         if metrics[name]["auprc"] > best_score:
             best_score = metrics[name]["auprc"]
             best_model = model
@@ -275,7 +299,7 @@ def main() -> None:
     metrics_path.write_text(json.dumps(metrics, indent=2))
 
     if best_model is not None and best_label:
-        generate_shap_summary(best_model, X_train, args.plots, best_label)
+        generate_shap_summary(best_model, X_train_scaled, args.plots, best_label)
 
     print(f"EDA summary saved to {eda_path}")
     print(f"Plots saved to {args.plots} (class distribution, amount density, PR curves).")
