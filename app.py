@@ -8,6 +8,7 @@ import streamlit as st
 PLOTS_DIR = Path("plots")
 METRICS_PATH = Path("outputs/metrics.json")
 EDA_PATH = Path("reports/eda_summary.md")
+IMAGE_WIDTH = 450
 
 LANG_CHOICES = {"English": "en", "العربية": "ar"}
 UI_TEXT = {
@@ -112,16 +113,20 @@ else:
     ]
     cols = st.columns(max(1, len(pr_images)))
     for col, path in zip(cols, pr_images):
-        col.image(str(path), caption=path.stem, use_column_width=True)
+        col.image(str(path), caption=path.stem, width=IMAGE_WIDTH)
 
     shap_file = shap_path()
     if shap_file is not None:
         st.markdown(t("shap_summary", lang_code))
-        st.image(str(shap_file), caption=shap_file.stem, use_column_width=True)
+        st.image(str(shap_file), caption=shap_file.stem, width=IMAGE_WIDTH)
 
 st.markdown(t("visualizations", lang_code))
 if plot_paths:
     for path in plot_paths:
-        st.image(str(path), caption=path.stem.replace("_", " ").title(), use_column_width=True)
+        st.image(
+            str(path),
+            caption=path.stem.replace("_", " ").title(),
+            width=IMAGE_WIDTH,
+        )
 else:
     st.info("Generate plots by running the pipeline.")
