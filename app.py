@@ -9,6 +9,7 @@ PLOTS_DIR = Path("plots")
 METRICS_PATH = Path("outputs/metrics.json")
 EDA_PATH = Path("reports/eda_summary.md")
 IMAGE_WIDTH = 450
+GRID_IMAGE_WIDTH = 320
 
 LANG_CHOICES = {"English": "en", "العربية": "ar"}
 UI_TEXT = {
@@ -131,6 +132,25 @@ def dataset_preview(df: pd.DataFrame, rows: int = DATA_PREVIEW_ROWS) -> pd.DataF
     return df.sample(n=sample_size, random_state=DATA_RANDOM_STATE).reset_index(drop=True)
 
 
+def chunk_items(items: list[Path], size: int) -> list[list[Path]]:
+    return [items[i : i + size] for i in range(0, len(items), size)]
+
+
+def render_image_grid(
+    paths: list[Path], columns: int = 3, width: int = GRID_IMAGE_WIDTH
+) -> None:
+    if not paths:
+        return
+    for row in chunk_items(paths, columns):
+        cols = st.columns(len(row))
+        for column, path in zip(cols, row):
+            column.image(
+                str(path),
+                caption=path.stem.replace("_", " ").title(),
+                width=width,
+            )
+
+
 st.set_page_config(page_title="Fraud Detection Dashboard", layout="wide")
 st.title("Credit Card Fraud Detection Explorer")
 
@@ -155,91 +175,97 @@ if DATA_PATH.exists():
         dataset_stats = summarize_dataset(dataset_df)
 
 if dataset_df is not None:
-    st.markdown(t("dataset_summary", lang_code))
-    summary_cols = st.columns(4)
-    summary_cols[0].metric(
-        t("dataset_transactions", lang_code),
-        f"{dataset_stats['total']:,}",
-    )
-    summary_cols[1].metric(
-        t("dataset_frauds", lang_code),
-        f"{dataset_stats['fraud']:,}",
-        f"{dataset_stats['fraud_ratio']:.2%} of rows",
-    )
-    summary_cols[2].metric(
-        t("dataset_features", lang_code),
-        f"{dataset_stats['features']}",
-    )
-    summary_cols[3].metric(
-        t("dataset_avg_amount", lang_code),
-        f"${dataset_stats['avg_amount']:,.2f}",
-        f"Median ${dataset_stats['median_amount']:,.2f}",
-    )
-    st.markdown(t("dataset_insights", lang_code))
-    class_counts = dataset_stats.get("class_counts")
-    if class_counts is not None and not class_counts.empty:
-        st.bar_chart(class_counts)
-        st.caption(t("class_balance", lang_code))
-    top_corr = dataset_stats.get("top_corr")
-    if top_corr is not None and not top_corr.empty:
-        st.markdown(t("top_correlations", lang_code))
-        corr_df = (
-            pd.DataFrame(
-                {
-                    "feature": top_corr.index,
-                    "abs_correlation": top_corr.values,
-                }
-            )
-            .assign(
-                abs_correlation=lambda frame: frame["abs_correlation"].map(
-                    lambda value: f"{value:.3f}"
-                )
-            )
+    with st.container():
+        st.markdown(t("dataset_summary", lang_code))
+        summary_cols = st.columns(4)
+        summary_cols[0].metric(
+            t("dataset_transactions", lang_code),
+            f"{dataset_stats['total']:,}",
         )
-        st.table(corr_df)
-    with st.expander(t("dataset_preview", lang_code)):
-        st.dataframe(dataset_preview(dataset_df), use_container_width=True)
+        summary_cols[1].metric(
+            t("dataset_frauds", lang_code),
+            f"{dataset_stats['fraud']:,}",
+            f"{dataset_stats['fraud_ratio']:.2%} of rows",
+        )
+        summary_cols[2].metric(
+            t("dataset_features", lang_code),
+            f"{dataset_stats['features']}",
+        )
+        summary_cols[3].metric(
+            t("dataset_avg_amount", lang_code),
+            f"${dataset_stats['avg_amount']:,.2f}",
+            f"Median ${dataset_stats['median_amount']:,.2f}",
+        )
+        st.markdown(t("dataset_insights", lang_code))
+        class_counts = dataset_stats.get("class_counts")
+        top_corr = dataset_stats.get("top_corr")
+        insight_cols = st.columns([1, 1])
+        if class_counts is not None and not class_counts.empty:
+            with insight_cols[0]:
+                st.bar_chart(class_counts)
+                st.caption(t("class_balance", lang_code))
+        if top_corr is not None and not top_corr.empty:
+            with insight_cols[1]:
+                st.markdown(t("top_correlations", lang_code))
+                corr_df = (
+                    pd.DataFrame(
+                        {
+                            "feature": top_corr.index,
+                            "abs_correlation": top_corr.values,
+                        }
+                    )
+                    .assign(
+                        abs_correlation=lambda frame: frame["abs_correlation"].map(
+                            lambda value: f"{value:.3f}"
+                        )
+                    )
+                )
+                st.table(corr_df)
+        with st.expander(t("dataset_preview", lang_code)):
+            st.dataframe(dataset_preview(dataset_df), use_container_width=True)
+    st.divider()
 else:
     st.info(t("dataset_missing", lang_code))
 
 st.markdown(t("dataset_overview", lang_code))
 st.markdown(eda_text)
 
-if not metrics_df.empty:
-    best_row = metrics_df.iloc[0]
-    precision_text = (
-        "n/a"
-        if pd.isna(best_row["precision_pos"])
-        else f"{best_row['precision_pos']:.3f}"
-    )
-    recall_text = (
-        "n/a"
-        if pd.isna(best_row["recall_pos"])
-        else f"{best_row['recall_pos']:.3f}"
-    )
-    st.markdown(t("best_model_highlight", lang_code))
-    highlight_cols = st.columns(4)
-    highlight_cols[0].metric(
-        t("best_model_label", lang_code),
-        best_row["model"].replace("_", " ").title(),
-    )
-    highlight_cols[1].metric(
-        t("best_model_auprc", lang_code),
-        f"{best_row['auprc']:.3f}",
-    )
-    highlight_cols[2].metric(
-        t("best_model_precision", lang_code),
-        precision_text,
-    )
-    highlight_cols[3].metric(
-        t("best_model_recall", lang_code),
-        recall_text,
-    )
-    st.caption(t("best_model_caption", lang_code))
-
 if metrics_df.empty:
     st.warning(t("no_metrics", lang_code))
 else:
+    with st.container():
+        best_row = metrics_df.iloc[0]
+        precision_text = (
+            "n/a"
+            if pd.isna(best_row["precision_pos"])
+            else f"{best_row['precision_pos']:.3f}"
+        )
+        recall_text = (
+            "n/a"
+            if pd.isna(best_row["recall_pos"])
+            else f"{best_row['recall_pos']:.3f}"
+        )
+        st.markdown(t("best_model_highlight", lang_code))
+        highlight_cols = st.columns(4)
+        highlight_cols[0].metric(
+            t("best_model_label", lang_code),
+            best_row["model"].replace("_", " ").title(),
+        )
+        highlight_cols[1].metric(
+            t("best_model_auprc", lang_code),
+            f"{best_row['auprc']:.3f}",
+        )
+        highlight_cols[2].metric(
+            t("best_model_precision", lang_code),
+            precision_text,
+        )
+        highlight_cols[3].metric(
+            t("best_model_recall", lang_code),
+            recall_text,
+        )
+        st.caption(t("best_model_caption", lang_code))
+    st.divider()
+
     st.sidebar.header(t("model_filters", lang_code))
     model_options = metrics_df["model"].tolist()
     selected_models = st.sidebar.multiselect(
@@ -254,28 +280,23 @@ else:
     st.markdown(t("model_comparison", lang_code))
     st.dataframe(filtered.style.format({"auprc": "{:.3f}", "avg_precision": "{:.3f}"}))
 
-    st.markdown(t("pr_curves", lang_code))
     pr_images = [
         pr_curve_path(name)
         for name in filtered["model"]
         if pr_curve_path(name).exists()
     ]
-    cols = st.columns(max(1, len(pr_images)))
-    for col, path in zip(cols, pr_images):
-        col.image(str(path), caption=path.stem, width=IMAGE_WIDTH)
+    if pr_images:
+        st.markdown(t("pr_curves", lang_code))
+        render_image_grid(pr_images, columns=2)
 
     shap_file = shap_path()
     if shap_file is not None:
         st.markdown(t("shap_summary", lang_code))
         st.image(str(shap_file), caption=shap_file.stem, width=IMAGE_WIDTH)
 
+st.divider()
 st.markdown(t("visualizations", lang_code))
 if plot_paths:
-    for path in plot_paths:
-        st.image(
-            str(path),
-            caption=path.stem.replace("_", " ").title(),
-            width=IMAGE_WIDTH,
-        )
+    render_image_grid(plot_paths, columns=3)
 else:
     st.info("Generate plots by running the pipeline.")

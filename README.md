@@ -38,18 +38,32 @@ To explore the metrics and visuals interactively, launch the Streamlit applicati
 streamlit run app.py
 ```
 
-It reads `reports/eda_summary.md`, `outputs/metrics.json`, and every PNG under `plots/` so you can browse the dataset overview, model comparison table, and generated charts in one place. The dashboard now surfaces dataset summary cards, class-balance and correlation highlights, and a small snapshot of the raw transactions before diving into the model comparisons, plus a quick best-model overview to call out the top AUPRC performer.
+It reads `reports/eda_summary.md`, `outputs/metrics.json`, and every PNG under `plots/` so you can browse the dataset overview, model comparison table, and generated charts in one place. The dashboard now surfaces dataset summary cards, class-balance and correlation highlights, and a small snapshot of the raw transactions before diving into the model comparisons, plus a quick best-model overview to call out the top AUPRC performer. Precision-recall reports and exploratory visuals render in responsive image grids to keep the wide layout balanced and easy to scan.
 
 ## Pipeline overview
 
 ```mermaid
 flowchart TD
-    A["Load creditcard.csv"] --> B["Sample, describe, and scale features"]
-    B --> C["Train models: logistic regression, random forest, gradient boosting, LightGBM, and MLP"]
-    C --> D["Save scalers/models plus metrics.json"]
-    C --> E["Generate plots (distributions, PR curves, SHAP)"]
-    D --> F["Streamlit dashboard reads metrics and EDA summary"]
-    E --> F
+    A["Load creditcard.csv"] --> B["Clean, deduplicate, and sample"] 
+    B --> C["Scale features and split train/test"]
+    C --> D["Train classifiers (LR, RF, GBM, LightGBM, MLP)"]
+    D --> E["Persist scalers/models + `metrics.json`"]
+    C --> F["Generate PR curves + SHAP + exploratory plots"]
+    E --> G["Streamlit dashboard ingests metrics, EDA text, plots"]
+    F --> G
+```
+
+## Dashboard layout
+
+```mermaid
+flowchart TD
+    A["Dataset summary cards"] --> B["Best model highlight (auprc, precision, recall)"]
+    B --> C["Model comparison table + filters"]
+    C --> D["Precision-Recall curves visual gallery"]
+    D --> E["SHAP summary for top performer"]
+    D --> F["Exploratory visuals row"]
+    A --> G["Dataset insights (class balance, correlations, preview)"]
+    G --> C
 ```
 
 ## Explainability
